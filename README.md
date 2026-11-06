@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # WALLET OS
 
 Sistema operacional pessoal: **Finance Intelligence**, **Chief of Staff** e **AI Command Center**.
@@ -152,3 +153,6 @@ saldo, ajuste o saldo inicial da conta ou lance uma movimentação.
 Não há integração bancária automática. Contas e cartões são cadastrados manualmente e as transações
 entram por lançamento manual ou importação de extrato (OFX/CSV). A tabela `import_batches` registra
 cada importação; `transactions.dedupe_hash` impede duplicidade ao reimportar o mesmo arquivo.
+=======
+# WALLET.OS
+>>>>>>> 84481dd86d12f975d4f263d60cf9f95d5df1da0f
