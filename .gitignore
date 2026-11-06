@@ -8,3 +8,4 @@ next-env.d.ts
 !.env.example
 .DS_Store
 .vercel
+tests/e2e/.output
