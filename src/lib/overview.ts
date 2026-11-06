@@ -1,3 +1,4 @@
+import { todayInSaoPaulo } from "@/lib/dates";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,7 +41,13 @@ const monthLabel = (d: Date) =>
 export const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export function lastMonths(count = 6, ref = new Date()): Date[] {
+/** O "mês atual" é o de Brasília, mesmo com o servidor em UTC. */
+function currentMonthRef(): Date {
+  const [year, month] = todayInSaoPaulo().split("-").map(Number);
+  return new Date(year, month - 1, 1);
+}
+
+export function lastMonths(count = 6, ref = currentMonthRef()): Date[] {
   return Array.from(
     { length: count },
     (_, i) => new Date(ref.getFullYear(), ref.getMonth() - (count - 1 - i), 1),
@@ -91,7 +98,8 @@ export async function getOverview(): Promise<Overview> {
       .eq("archived", false),
     supabase
       .from("card_invoices")
-      .select("id,card_id,total_cents,due_date,status,credit_cards(name)")
+      // "*" porque paid_cents só existe depois da migration 0006.
+      .select("*,credit_cards(name)")
       .neq("status", "paid")
       .order("due_date"),
   ]);
@@ -124,7 +132,7 @@ export async function getOverview(): Promise<Overview> {
   const usedByCard = new Map<string, number>();
   let openInvoicesCents = 0;
   for (const inv of invoiceRows) {
-    const total = Number(inv.total_cents);
+    const total = Math.max(0, Number(inv.total_cents) - Number(inv.paid_cents ?? 0));
     openInvoicesCents += total;
     const id = String(inv.card_id);
     usedByCard.set(id, (usedByCard.get(id) ?? 0) + total);
@@ -145,7 +153,7 @@ export async function getOverview(): Promise<Overview> {
       id: String(inv.id),
       label: `Fatura ${name ?? "cartão"}`,
       dueDate: String(inv.due_date),
-      amountCents: Number(inv.total_cents),
+      amountCents: Math.max(0, Number(inv.total_cents) - Number(inv.paid_cents ?? 0)),
     };
   });
 

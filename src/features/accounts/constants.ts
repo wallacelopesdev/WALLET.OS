@@ -50,6 +50,7 @@ export const MOVEMENT_KIND_LABELS: Record<string, string> = {
   invoice_payment: "Pagamento de fatura",
   refund: "Estorno",
   income: "Receita",
+  expense: "Despesa",
   other: "Outros",
 };
 

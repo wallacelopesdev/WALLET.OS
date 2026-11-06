@@ -1,4 +1,4 @@
-import { isSchemaOutdated } from "@/lib/action-result";
+import { MigrationRequiredError, isSchemaOutdated } from "@/lib/action-result";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import type { AccountKind } from "./constants";
@@ -23,9 +23,6 @@ export type Movement = {
   kind: string;
   categoryName: string | null;
 };
-
-/** O código está à frente do banco: a migration 0002 ainda não foi aplicada. */
-export class MigrationRequiredError extends Error {}
 
 const ACCOUNT_COLUMNS =
   "id,name,institution,kind,balance_cents,opening_balance_cents,archived,created_at";

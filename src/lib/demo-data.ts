@@ -1,5 +1,87 @@
 import type { Account, Movement } from "@/features/accounts/queries";
+import type { Card, Invoice, InvoiceEntry } from "@/features/cards/queries";
+import type { Category } from "@/features/categories/queries";
+import type { TransactionItem } from "@/features/transactions/queries";
 import { emptyMonthly, isoDate, type Overview } from "@/lib/overview";
+
+export function demoTransactions(): TransactionItem[] {
+  const base = {
+    competenceDate: null,
+    notes: null,
+    transferGroupId: null,
+    fromAccountId: null,
+    toAccountId: null,
+    cardId: null,
+    invoiceId: null,
+    installmentNumber: null,
+    installmentTotal: null,
+  };
+  return demoMovements("demo-corrente").map((m) => ({
+    ...base,
+    id: m.id,
+    postedAt: m.postedAt,
+    description: m.description,
+    amountCents: m.amountCents,
+    kind: m.amountCents > 0 ? "income" : "expense",
+    paymentMethod: m.amountCents > 0 ? null : "pix",
+    accountId: "demo-corrente",
+    categoryId: m.amountCents > 0 ? "demo-cat-salario" : "demo-cat-moradia",
+  }));
+}
+
+export function demoCards(): Card[] {
+  return [
+    { id: "demo-card-a", name: "Cartão Demo A", institution: "Banco Fictício A", last4: "0000", limitCents: 1200000, closingDay: 10, dueDay: 20, archived: false },
+    { id: "demo-card-b", name: "Cartão Demo B", institution: "Banco Fictício B", last4: null, limitCents: 800000, closingDay: 25, dueDay: 5, archived: false },
+  ];
+}
+
+export function demoInvoices(cardId: string): Invoice[] {
+  if (cardId !== "demo-card-a") return [];
+  const now = new Date();
+  const invoice = (offset: number, total: number, paid: number): Invoice => {
+    const month = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return {
+      id: `demo-invoice-${offset + 10}`,
+      cardId,
+      referenceMonth: isoDate(month),
+      closingDate: isoDate(new Date(month.getFullYear(), month.getMonth(), 10)),
+      dueDate: isoDate(new Date(month.getFullYear(), month.getMonth(), 20)),
+      totalCents: total,
+      paidCents: paid,
+    };
+  };
+  return [invoice(-1, 321000, 321000), invoice(0, 438000, 0), invoice(1, 120000, 0)];
+}
+
+export function demoInvoiceEntries(): InvoiceEntry[] {
+  const now = new Date();
+  return [
+    { id: "demo-entry-1", postedAt: isoDate(now), description: "Exemplo de compra parcelada", amountCents: -120000, categoryId: null, installmentNumber: 1, installmentTotal: 3, accountId: null },
+    { id: "demo-entry-2", postedAt: isoDate(now), description: "Exemplo de compra à vista", amountCents: -318000, categoryId: null, installmentNumber: null, installmentTotal: null, accountId: null },
+  ];
+}
+
+export function demoCategories(): Category[] {
+  const base = { isSystem: true, archived: false };
+  return [
+    { ...base, id: "demo-cat-salario", name: "Salário", kind: "income", icon: "banknote", color: "#4ade80" },
+    { ...base, id: "demo-cat-vendas", name: "Vendas", kind: "income", icon: "store", color: "#a78bfa" },
+    { ...base, id: "demo-cat-alimentacao", name: "Alimentação", kind: "expense", icon: "utensils", color: "#fb923c" },
+    { ...base, id: "demo-cat-moradia", name: "Moradia", kind: "expense", icon: "house", color: "#60a5fa" },
+    { ...base, id: "demo-cat-lazer", name: "Lazer", kind: "expense", icon: "party-popper", color: "#f472b6" },
+  ];
+}
+
+export function demoCategoryTotals(categoryId: string) {
+  const totals: Record<string, [number, number]> = {
+    "demo-cat-salario": [450000, 1],
+    "demo-cat-alimentacao": [32650, 1],
+    "demo-cat-moradia": [170000, 1],
+  };
+  const [periodCents, periodCount] = totals[categoryId] ?? [0, 0];
+  return { periodCents, periodCount, totalCount: periodCount };
+}
 
 export function demoAccounts(): Account[] {
   const createdAt = "2026-01-15T12:00:00.000Z";

@@ -2,23 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowLeftRight } from "lucide-react";
+import { MigrationNotice } from "@/components/migration-notice";
 import { buttonClass } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AccountActions } from "@/features/accounts/components/account-actions";
 import { AccountIcon } from "@/features/accounts/components/account-icon";
-import { MigrationNotice } from "@/features/accounts/components/migration-notice";
 import { MovementsList } from "@/features/accounts/components/movements-list";
 import {
   ACCOUNT_KIND_LABELS,
   MOVEMENTS_MAX,
   MOVEMENTS_PAGE_SIZE,
 } from "@/features/accounts/constants";
-import {
-  MigrationRequiredError,
-  getAccount,
-  listAccountMovements,
-} from "@/features/accounts/queries";
+import { getAccount, listAccountMovements } from "@/features/accounts/queries";
+import { MigrationRequiredError } from "@/lib/action-result";
 import { isSupabaseConfigured } from "@/lib/env";
 import { cn, formatBRL, formatTimestampDate } from "@/lib/utils";
 
@@ -72,7 +69,7 @@ export default async function AccountPage({
       return (
         <>
           {back}
-          <MigrationNotice />
+          <MigrationNotice file="0002_accounts.sql" />
         </>
       );
     }
@@ -154,10 +151,28 @@ export default async function AccountPage({
             icon={ArrowLeftRight}
             title="Nenhuma movimentação"
             description="Os lançamentos desta conta aparecerão aqui, do mais recente para o mais antigo."
+            action={
+              !demo && !account.archived ? (
+                <Link
+                  href={`/transacoes?conta=${account.id}`}
+                  className={buttonClass("secondary")}
+                >
+                  Registrar em Transações
+                </Link>
+              ) : undefined
+            }
           />
         ) : (
           <>
             <MovementsList movements={movements} />
+            {!demo && (
+              <Link
+                href={`/transacoes?conta=${account.id}`}
+                className="mt-3 inline-flex min-h-11 items-center text-sm text-muted underline underline-offset-4 transition-colors hover:text-fg"
+              >
+                Editar ou lançar em Transações
+              </Link>
+            )}
             {canLoadMore && (
               <Link
                 href={`/financeiro/contas/${account.id}?limite=${limit + MOVEMENTS_PAGE_SIZE}`}

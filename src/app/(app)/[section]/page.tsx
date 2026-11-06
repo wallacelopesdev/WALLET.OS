@@ -10,25 +10,6 @@ type Section = {
 };
 
 const SECTIONS: Record<string, Section> = {
-  cartoes: {
-    title: "Cartões",
-    phase: 2,
-    summary: "Controle de limite, fatura e parcelas de cada cartão.",
-    items: [
-      "Cadastro manual de limite, fechamento e vencimento",
-      "Fatura atual, próximas faturas e histórico de uso",
-      "Compras parceladas",
-    ],
-  },
-  transacoes: {
-    title: "Transações",
-    phase: 2,
-    summary: "Todas as movimentações em um só lugar.",
-    items: [
-      "Busca e filtros por período, conta, cartão e categoria",
-      "Edição de categoria e histórico de importações",
-    ],
-  },
   relatorios: {
     title: "Relatórios",
     phase: 2,

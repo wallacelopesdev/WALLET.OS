@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import { Landmark } from "lucide-react";
+import { MigrationNotice } from "@/components/migration-notice";
 import { Card, CardTitle, PageHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { AccountRow } from "@/features/accounts/components/account-row";
 import { FlashToast } from "@/features/accounts/components/flash-toast";
-import { MigrationNotice } from "@/features/accounts/components/migration-notice";
 import { NewAccountButton } from "@/features/accounts/components/new-account-button";
-import {
-  MigrationRequiredError,
-  listAccounts,
-  type Account,
-} from "@/features/accounts/queries";
+import { listAccounts, type Account } from "@/features/accounts/queries";
+import { FinanceTabs } from "@/features/categories/components/finance-tabs";
+import { MigrationRequiredError } from "@/lib/action-result";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatBRL } from "@/lib/utils";
 
@@ -39,7 +37,7 @@ export default async function FinanceiroPage({
       return (
         <>
           <PageHeader title="Financeiro" subtitle={subtitle} />
-          <MigrationNotice />
+          <MigrationNotice file="0002_accounts.sql" />
         </>
       );
     }
@@ -61,6 +59,7 @@ export default async function FinanceiroPage({
         badge={demo ? "Dados fictícios" : undefined}
         action={!demo && accounts.length > 0 ? <NewAccountButton /> : undefined}
       />
+      <FinanceTabs active="contas" />
 
       {accounts.length === 0 ? (
         <Card className="animate-rise">

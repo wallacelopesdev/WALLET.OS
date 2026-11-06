@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Card, CardTitle, PageHeader } from "@/components/ui/card";
+import { countPendingCaptures } from "@/features/capture/queries";
 import { getSessionInfo } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Configurações" };
@@ -13,7 +15,7 @@ const INTEGRATIONS = [
 ];
 
 export default async function SettingsPage() {
-  const session = await getSessionInfo();
+  const [session, pending] = await Promise.all([getSessionInfo(), countPendingCaptures()]);
 
   return (
     <>
@@ -53,6 +55,20 @@ export default async function SettingsPage() {
             ))}
           </ul>
         </Card>
+
+        <Link href="/configuracoes/captura" className="block animate-rise lg:col-span-2">
+          <Card className="flex items-center justify-between gap-4 transition-colors hover:bg-raised">
+            <div className="min-w-0">
+              <CardTitle>Captura automática</CardTitle>
+              <p className="mt-2 text-sm text-muted">
+                Lançamentos vindos do iPhone e dos bancos, e o que está aguardando revisão.
+              </p>
+            </div>
+            <span className="shrink-0 text-sm tabular-nums">
+              {pending > 0 ? `${pending} para revisar` : "Abrir"}
+            </span>
+          </Card>
+        </Link>
       </div>
     </>
   );

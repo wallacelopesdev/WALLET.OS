@@ -30,9 +30,9 @@ export function Modal({ open, onClose, title, children }: Props) {
       ref={ref}
       aria-labelledby="modal-title"
       onClose={() => {
-        // O evento chega depois do fechamento: ignora o que sobrou de um
-        // fechamento anterior se o modal já foi reaberto.
-        if (!ref.current?.open) onClose();
+        // O evento chega depois do fechamento. Só o trata se foi o navegador que
+        // fechou (Esc): se foi o estado, a tela já pode ter aberto outro modal.
+        if (open && !ref.current?.open) onClose();
       }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();

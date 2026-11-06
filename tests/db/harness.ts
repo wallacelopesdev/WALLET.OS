@@ -49,8 +49,12 @@ export async function createDatabase() {
 }
 
 /** Roda como o SQL Editor: tudo dentro de uma única transação. */
+export async function applyMigration(db: PGlite, file: string) {
+  await db.exec(`begin;\n${migration(file)}\ncommit;`);
+}
+
 export async function applyAccountsMigration(db: PGlite) {
-  await db.exec(`begin;\n${migration("0002_accounts.sql")}\ncommit;`);
+  await applyMigration(db, "0002_accounts.sql");
 }
 
 export async function createUser(db: PGlite, id: string, email: string) {
