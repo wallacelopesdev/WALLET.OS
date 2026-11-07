@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Card, CardTitle, PageHeader } from "@/components/ui/card";
-import { countPendingCaptures } from "@/features/capture/queries";
+import { countPendingCaptures } from "@/features/agent/queries";
 import { getSessionInfo } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Configurações" };
@@ -56,12 +56,12 @@ export default async function SettingsPage() {
           </ul>
         </Card>
 
-        <Link href="/configuracoes/captura" className="block animate-rise lg:col-span-2">
+        <Link href="/agente" className="block animate-rise lg:col-span-2">
           <Card className="flex items-center justify-between gap-4 transition-colors hover:bg-raised">
             <div className="min-w-0">
-              <CardTitle>Captura automática</CardTitle>
+              <CardTitle>Financial Agent</CardTitle>
               <p className="mt-2 text-sm text-muted">
-                Lançamentos vindos do iPhone e dos bancos, e o que está aguardando revisão.
+                Conexões, captura pelo iPhone, importação de extratos e o que aguarda revisão.
               </p>
             </div>
             <span className="shrink-0 text-sm tabular-nums">

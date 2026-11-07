@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeftRight,
+  Activity,
   BarChart3,
   Briefcase,
   CalendarDays,
@@ -31,6 +32,7 @@ export const NAV_ITEMS: Item[] = [
   { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/agente", label: "Financial Agent", icon: Activity },
   { href: "/chief-of-staff", label: "Chief of Staff", icon: Briefcase },
   { href: "/emails", label: "E-mails", icon: Mail },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },

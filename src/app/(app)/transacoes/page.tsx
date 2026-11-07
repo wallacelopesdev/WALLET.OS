@@ -6,7 +6,7 @@ import { buttonClass } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listAccounts } from "@/features/accounts/queries";
-import { countPendingCaptures } from "@/features/capture/queries";
+import { countPendingCaptures } from "@/features/agent/queries";
 import { listCards } from "@/features/cards/queries";
 import { listCategories } from "@/features/categories/queries";
 import { NewTransactionButton } from "@/features/transactions/components/new-transaction-button";
@@ -87,7 +87,7 @@ export default async function TransacoesPage({
 
       {pendingCaptures > 0 && (
         <Link
-          href="/configuracoes/captura#pendentes"
+          href="/agente/revisao"
           className="mb-3 flex animate-rise items-center justify-between gap-3 rounded-2xl border border-line-strong bg-raised px-5 py-3.5 text-sm transition-colors hover:border-fg"
         >
           <span>

@@ -12,6 +12,7 @@
     "test:e2e": "node tests/e2e/run.mjs && node tests/e2e/demo.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
     "clsx": "^2.1.1",
