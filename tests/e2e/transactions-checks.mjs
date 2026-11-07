@@ -37,21 +37,21 @@ export async function runA(h) {
     await modal("input[name=name]");
     await click("Criar categoria");
     await see("Informe um nome para a categoria.");
-    await setVal("input[name=name]", "Viagens");
+    await setVal("input[name=name]", "Hobbies");
     await clickAria("Ícone plane");
     await clickAria("Cor #60a5fa");
     await shot("12-form-categoria-desktop");
     await click("Criar categoria");
     await see("Categoria criada.");
-    await see("Viagens");
-    const row = (await db.query("select kind, icon, color, is_system from public.transaction_categories where name='Viagens'")).rows[0];
+    await see("Hobbies");
+    const row = (await db.query("select kind, icon, color, is_system from public.transaction_categories where name='Hobbies'")).rows[0];
     if (row.kind !== "expense" || row.icon !== "plane" || row.color !== "#60a5fa" || row.is_system) throw new Error(JSON.stringify(row));
   });
 
   await check("[M2] nome duplicado no mesmo tipo é recusado", async () => {
     await click("Nova categoria");
     await modal("input[name=name]");
-    await setVal("input[name=name]", "viagens");
+    await setVal("input[name=name]", "hobbies");
     await click("Criar categoria");
     await see("Já existe uma categoria ativa");
     await click("Cancelar");
@@ -61,16 +61,16 @@ export async function runA(h) {
   await check("[M2] mesmo nome em receitas é permitido (slug distinto)", async () => {
     await evalJs(`[...document.querySelectorAll('button')].filter(b=>b.innerText.trim()==='Nova categoria')[1].click()`);
     await modal("input[name=name]");
-    await setVal("input[name=name]", "Viagens");
+    await setVal("input[name=name]", "Hobbies");
     await click("Criar categoria");
     await waitFor(`!document.querySelector('dialog[open]')`, "modal fechado");
-    const rows = (await db.query("select slug, kind from public.transaction_categories where name='Viagens' order by kind")).rows;
+    const rows = (await db.query("select slug, kind from public.transaction_categories where name='Hobbies' order by kind")).rows;
     if (rows.length !== 2 || rows[0].slug === rows[1].slug) throw new Error(JSON.stringify(rows));
   });
 
   await check("[M2] editar renomeia", async () => {
     await modalClosed();
-    await clickContains("Viagens");
+    await clickContains("Hobbies");
     await modal("input[name=name]");
     await setVal("input[name=name]", "Passeios");
     await click("Salvar alterações");

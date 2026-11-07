@@ -30,6 +30,7 @@ export type CardSummary = Card & {
   availableCents: number;
   nextInvoice: Invoice | null;
   invoiceCount: number;
+  openInvoices: Invoice[];
 };
 
 export type InvoiceEntry = {
@@ -102,6 +103,9 @@ function summarize(card: Card, invoices: Invoice[]): CardSummary {
     availableCents: Math.max(0, card.limitCents - usedCents),
     nextInvoice: nextInvoiceToPay(invoices),
     invoiceCount: invoices.length,
+    openInvoices: invoices
+      .filter((i) => i.totalCents > i.paidCents)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
   };
 }
 

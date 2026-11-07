@@ -15,7 +15,8 @@ export function createTokenClient() {
 
 export type IngestParams = {
   token: string | null;
-  source: "apple_pay" | "notification" | "sms" | "email" | "pluggy";
+  source: "apple_pay" | "notification" | "sms" | "email" | "pluggy" | "ofx" | "csv";
+  intent?: "normal" | "invoice_payment" | "refund" | "possible_transfer";
   externalRef?: string | null;
   description: string;
   amountCents: number;
@@ -53,5 +54,6 @@ export async function ingestCapture(client: RpcClient, params: IngestParams) {
     p_card: params.cardId ?? null,
     p_location: params.location ?? null,
     p_reason: params.reason ?? null,
+    p_intent: params.intent ?? "normal",
   });
 }

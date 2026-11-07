@@ -41,6 +41,7 @@ const BUSINESS_ERRORS: Record<string, string> = {
   WL011: "Um parcelamento precisa ser alterado por inteiro.",
   WL012: "Número de parcelas inválido para este valor.",
   WL013: "Escolha um destino válido para este lançamento.",
+  WL014: "Muitas requisições em pouco tempo. Tente de novo em um minuto.",
 };
 
 /**

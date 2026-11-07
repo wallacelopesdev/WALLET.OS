@@ -74,6 +74,7 @@ describe("captura automática", () => {
       "0005_transactions.sql",
       "0006_cards.sql",
       "0007_capture.sql",
+      "0008_agent_core.sql",
     ]) {
       await applyMigration(db, file);
     }
@@ -288,7 +289,7 @@ describe("captura automática", () => {
     it("lançamento digitado à mão também é reconhecido", async () => {
       await db.query(
         `insert into public.transactions (user_id, account_id, posted_at, description, amount_cents, kind, dedupe_hash)
-         values ($1, $2, '2026-11-05', 'Manual', -900, 'expense', 'manual:1')`,
+         values ($1, $2, '2026-11-05', 'Padaria', -900, 'expense', 'manual:1')`,
         [USER_A, account],
       );
       const result = await ingest({ amount: -900, account, source: "pluggy", ref: "p2" });

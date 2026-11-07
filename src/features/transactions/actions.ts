@@ -249,6 +249,9 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
     const { error } = await auth.supabase.rpc("delete_card_purchase", {
       p_transaction: transactionId,
     });
+    if (error?.code === "23514") {
+      return { ok: false, error: "Esta fatura tem um estorno. Exclua o estorno antes da compra." };
+    }
     if (error) return { ok: false, error: dbErrorMessage(error, "purchases.delete") };
 
     await logAudit(auth.supabase, {

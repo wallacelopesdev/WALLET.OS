@@ -277,6 +277,9 @@ export async function deletePurchase(transactionId: string): Promise<ActionResul
     p_transaction: transactionId,
   });
   if (error?.code === "P0002") return { ok: false, error: ENTRY_NOT_FOUND };
+  if (error?.code === "23514") {
+    return { ok: false, error: "Esta fatura tem um estorno. Exclua o estorno antes da compra." };
+  }
   if (error) return { ok: false, error: dbErrorMessage(error, "purchases.delete") };
 
   await logAudit(auth.supabase, {

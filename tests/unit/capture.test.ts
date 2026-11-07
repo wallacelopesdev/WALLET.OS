@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseBankMessage } from "@/features/capture/parse-message";
-import { mapPluggyTransaction, reaisToCents } from "@/features/capture/pluggy-map";
-import { captureBodySchema, parseCaptureAmount } from "@/features/capture/schema";
+import { parseBankMessage } from "@/features/agent/parse-message";
+import { mapPluggyTransaction, reaisToCents } from "@/features/agent/providers/pluggy-map";
+import { captureBodySchema, parseCaptureAmount } from "@/features/agent/schema";
 
 describe("parseBankMessage: movimentações", () => {
   it.each([
@@ -155,13 +155,48 @@ describe("mapPluggyTransaction", () => {
       expect(method("Qualquer")).toBeNull();
     });
 
-    it("pagamento de fatura e transferência vão para revisão, nunca como despesa", () => {
+    it("usa o tipo de operação documentado pela Pluggy", () => {
+      const method = (operationType: string) =>
+        mapPluggyTransaction({ ...base, type: "DEBIT", description: "X", operationType }, "BANK", TODAY)?.method;
+      expect(method("TED")).toBe("transfer");
+      expect(method("BOLETO")).toBe("boleto");
+      expect(method("CONVENIO_ARRECADACAO")).toBe("boleto");
+      expect(method("CARTAO")).toBe("debit");
+      expect(method("OUTROS")).toBeNull();
+    });
+
+    it.each([
+      "PAGAMENTO DE FATURA",
+      "PAGTO FATURA NUBANK",
+      "PAG FATURA",
+      "Pagamento Fatura Cartão",
+      "FATURA DO CARTAO ITAU",
+      "PGTO CARTAO CREDITO",
+    ])("%j é pagamento de fatura, nunca despesa", (description) => {
+      expect(mapPluggyTransaction({ ...base, type: "DEBIT", description }, "BANK", TODAY)?.intent).toBe(
+        "invoice_payment",
+      );
+    });
+
+    it.each(["Fatura de energia recebida", "Mercado Fatura"])(
+      "entrada ou outra compra não vira pagamento de fatura: %j",
+      (description) => {
+        expect(mapPluggyTransaction({ ...base, type: "CREDIT", description }, "BANK", TODAY)?.intent).toBe("normal");
+      },
+    );
+
+    it.each(["DEVOLUCAO PIX", "Devolução de Pix", "ESTORNO COMPRA", "REEMBOLSO"])(
+      "%j na entrada é estorno, não receita",
+      (description) => {
+        expect(mapPluggyTransaction({ ...base, type: "CREDIT", description }, "BANK", TODAY)?.intent).toBe("refund");
+      },
+    );
+
+    it("transferência na mesma instituição é possível transferência própria", () => {
       expect(
-        mapPluggyTransaction({ ...base, type: "DEBIT", operationType: "PAGAMENTO_FATURA" }, "BANK", TODAY)?.reason,
-      ).toMatch(/Pagamento de fatura/);
-      expect(
-        mapPluggyTransaction({ ...base, type: "DEBIT", operationType: "TRANSFERENCIA_MESMA_INSTITUICAO" }, "BANK", TODAY)?.reason,
-      ).toMatch(/transferência/);
+        mapPluggyTransaction({ ...base, type: "DEBIT", operationType: "TRANSFERENCIA_MESMA_INSTITUICAO" }, "BANK", TODAY)
+          ?.intent,
+      ).toBe("possible_transfer");
     });
   });
 
@@ -194,10 +229,28 @@ describe("mapPluggyTransaction", () => {
       ).toBeNull();
     });
 
-    it("outro crédito vai para revisão", () => {
+    it("pagamento informado pelo emissor também é ignorado", () => {
+      expect(mapPluggyTransaction({ ...base, amount: -150, operationType: "PAGAMENTO" }, "CREDIT", TODAY)).toBeNull();
+    });
+
+    it.each(["ESTORNO", "CASHBACK"])("%s reduz a fatura", (operationType) => {
+      expect(mapPluggyTransaction({ ...base, amount: -20, operationType }, "CREDIT", TODAY)).toMatchObject({
+        amountCents: 2000,
+        intent: "refund",
+      });
+    });
+
+    it("tarifa do cartão é uma cobrança", () => {
+      expect(mapPluggyTransaction({ ...base, operationType: "TARIFA" }, "CREDIT", TODAY)).toMatchObject({
+        amountCents: -7500,
+        intent: "normal",
+      });
+    });
+
+    it("crédito sem explicação fica como normal e o banco o manda para revisão", () => {
       expect(mapPluggyTransaction({ ...base, amount: -20 }, "CREDIT", TODAY)).toMatchObject({
         amountCents: 2000,
-        reason: "Estorno ou crédito no cartão",
+        intent: "normal",
       });
     });
 

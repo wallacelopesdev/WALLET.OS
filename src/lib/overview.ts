@@ -122,7 +122,11 @@ export async function getOverview(): Promise<Overview> {
     const amount = Number(t.amount_cents);
     const idx = keys.indexOf(String(t.posted_at).slice(0, 7));
     if (idx === -1) continue;
-    if (amount > 0) monthly[idx].incomeCents += amount;
+    // Estorno devolve uma despesa: não é receita.
+    if (kind === "refund") {
+      monthly[idx].expenseCents = Math.max(0, monthly[idx].expenseCents - Math.abs(amount));
+      if (t.card_id && idx === keys.length - 1) cardSpendCents = Math.max(0, cardSpendCents - Math.abs(amount));
+    } else if (amount > 0) monthly[idx].incomeCents += amount;
     else {
       monthly[idx].expenseCents += -amount;
       if (t.card_id && idx === keys.length - 1) cardSpendCents += -amount;

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createTokenClient, ingestCapture } from "@/features/capture/ingest";
-import { parseBankMessage } from "@/features/capture/parse-message";
-import { captureBodySchema, parseCaptureAmount } from "@/features/capture/schema";
+import { createTokenClient, ingestCapture } from "@/features/agent/ingest";
+import { parseBankMessage } from "@/features/agent/parse-message";
+import { captureBodySchema, parseCaptureAmount } from "@/features/agent/schema";
 import { todayInSaoPaulo } from "@/lib/dates";
 import { isSupabaseConfigured } from "@/lib/env";
 
@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error?.code === "42501") return reply({ error: "token inválido" }, 401);
+  if (error?.code === "WL014") return reply({ error: "muitas requisições" }, 429);
   if (error) {
     console.error(`[capture] erro de banco, código ${error.code ?? "desconhecido"}`);
     return reply({ error: "falha ao registrar" }, 500);

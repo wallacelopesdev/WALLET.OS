@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseBRLToCents } from "@/lib/money";
-import { reaisToCents } from "./pluggy-map";
+import { reaisToCents } from "./providers/pluggy-map";
 
 /**
  * Valor como os Atalhos entregam: texto com moeda ("R$ 12,34", "12,34 BRL") ou número.
