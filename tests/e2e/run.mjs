@@ -43,7 +43,7 @@ await db.exec(`
 const mig = (f) => readFileSync(path.join(PROJECT, "supabase/migrations", f), "utf8")
   .replace("create extension if not exists pgcrypto;", "");
 await db.exec(mig("0001_init.sql"));
-for (const file of ["0002_accounts.sql", "0003_categories.sql", "0004_transaction_types.sql", "0005_transactions.sql", "0006_cards.sql", "0007_capture.sql"]) {
+for (const file of ["0002_accounts.sql", "0003_categories.sql", "0004_transaction_types.sql", "0005_transactions.sql", "0006_cards.sql", "0007_capture.sql", "0008_agent_core.sql", "0009_agent_bills.sql", "0010_agent_connections.sql", "0011_agent_automations.sql"]) {
   await db.exec(`begin;\n${mig(file)}\ncommit;`);
 }
 for (const [email, id] of Object.entries(USERS)) {
@@ -56,7 +56,7 @@ await db.query("insert into public.capture_tokens (user_id,name,token_hash) valu
 // ------------------------------------------------------------- stub
 const ident = (s) => { if (!/^[a-z0-9_]+$/.test(s)) throw new Error("ident " + s); return `"${s}"`; };
 const OPS = { eq: "=", neq: "<>", gte: ">=", lte: "<=", gt: ">", lt: "<" };
-const RESERVED = new Set(["select", "order", "limit", "offset", "columns", "or"]);
+const RESERVED = new Set(["select", "order", "limit", "offset", "columns", "or", "on_conflict"]);
 
 function parseSelect(sel, table) {
   const out = [];
@@ -80,6 +80,7 @@ function cond(column, expr, values) {
     values.push(list);
     return `t.${ident(column)}::text = any($${values.length}::text[])`;
   }
+  if (op === "like") { values.push(raw.replace(/\*/g, "%")); return `t.${ident(column)}::text like $${values.length}`; }
   if (op === "ilike") { values.push(raw); return `t.${ident(column)} ilike $${values.length}`; }
   if (!OPS[op]) throw new Error("op " + expr);
   values.push(raw);
@@ -167,7 +168,9 @@ const stub = http.createServer(async (req, res) => {
       const ret = wantsRows ? ` returning ${select}` : "";
       if (req.method === "POST") {
         const keys = Object.keys(body);
-        const q = `insert into ${table} as t (${keys.map(ident).join(",")}) values (${keys.map((_, i) => `$${i + 1}`).join(",")})${ret}`;
+        const merge = prefer.includes("resolution=merge-duplicates")
+          ? ` on conflict (user_id) do update set ${keys.map((k) => `${ident(k)} = excluded.${ident(k)}`).join(",")}` : "";
+        const q = `insert into ${table} as t (${keys.map(ident).join(",")}) values (${keys.map((_, i) => `$${i + 1}`).join(",")})${merge}${ret}`;
         return { rows: (await db.query(q, keys.map((k) => body[k]))).rows };
       }
       if (req.method === "PATCH") {
@@ -196,10 +199,12 @@ const stub = http.createServer(async (req, res) => {
 await new Promise((r) => stub.listen(54399, "127.0.0.1", r));
 
 // ------------------------------------------------------------- next + chrome
+// Com outra pasta de build, o Next acrescenta os tipos dela ao tsconfig. Restaurado no fim.
+const tsconfigOriginal = readFileSync("tsconfig.json", "utf8");
 const BASE = "http://127.0.0.1:3100";
 const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "-p", "3100", "-H", "127.0.0.1"], {
   cwd: PROJECT,
-  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54399", NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON, PLUGGY_API_URL: "http://127.0.0.1:54400", PLUGGY_CLIENT_ID: "cid", PLUGGY_CLIENT_SECRET: "SEGREDO_PLUGGY_E2E", PLUGGY_ITEM_IDS: "item-1", CRON_SECRET: "cron-secreto", WALLET_SYNC_TOKEN: "wos_token_do_agendador_e2e", NEXT_TELEMETRY_DISABLED: "1" },
+  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54399", NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON, PLUGGY_API_URL: "http://127.0.0.1:54400", PLUGGY_CLIENT_ID: "cid", PLUGGY_CLIENT_SECRET: "SEGREDO_PLUGGY_E2E", PLUGGY_WEBHOOK_SECRET: "segredo-webhook", CRON_SECRET: "cron-secreto", WALLET_SYNC_TOKEN: "wos_token_do_agendador_e2e", E2E_DIST_DIR: ".next-e2e", NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let nextLog = "";
@@ -282,6 +287,7 @@ const scalar = async (q, p) => Object.values((await db.query(q, p)).rows[0])[0];
 
 const m23 = await import("./transactions-checks.mjs");
 const m4 = await import("./cards-capture-checks.mjs");
+const m5 = await import("./agent-checks.mjs");
 const helpers = { check, goto, see, notSee, click, setVal, evalJs, waitFor, shot, sleep, db, scalar, viewport, hasText, USERS };
 
 try {
@@ -478,6 +484,7 @@ try {
 
   await m23.runA(helpers);
   await m4.runA(helpers);
+  await m5.runA(helpers);
   await viewport(1280, 860, false);
   await check("logout e usuário B não vê nada de A", async () => {
     await evalJs(`[...document.querySelectorAll('aside button')].find(b=>b.innerText.trim()==='Sair').click()`);
@@ -496,6 +503,7 @@ try {
 
   await m23.runB(helpers);
   await m4.runB(helpers);
+  await m5.runB(helpers);
   await check("sem sessão, /financeiro redireciona para /login", async () => {
     await cdp("Network.clearBrowserCookies");
     await goto("/financeiro");
@@ -530,5 +538,6 @@ try {
   serverIssues.slice(0, 15).forEach((l) => console.log("  ", l.slice(0, 300)));
   try { ws.close(); } catch {}
   chrome.kill(); next.kill(); stub.close();
+  writeFileSync("tsconfig.json", tsconfigOriginal);
   setTimeout(() => process.exit(failures.length ? 1 : 0), 800);
 }

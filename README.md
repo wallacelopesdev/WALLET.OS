@@ -4,6 +4,7 @@ Sistema operacional pessoal: **Finance Intelligence**, **Chief of Staff** e **AI
 Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase (PostgreSQL + Auth).
 
 > Status: **Fase 1 concluída. Fase 2 em andamento** (ver [Progresso da Fase 2](#progresso-da-fase-2)).
+> Arquitetura do agente: [docs/financial-agent.md](docs/financial-agent.md).
 > Os módulos ainda não entregues aparecem na navegação com a fase em que serão entregues.
 
 ## Progresso da Fase 2
@@ -13,18 +14,19 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase (Postgre
 | 1 | Contas bancárias | Implementado; migration aplicada; **aguardando teste de tela no Supabase real** |
 | 2 | Categorias | Implementado; migration aplicada; **aguardando teste de tela no Supabase real** |
 | 3 | Transações e transferências | Implementado; migrations aplicadas; **aguardando teste de tela no Supabase real** |
-| 4 | Cartões de crédito | Implementado; **aguardando migration `0006` e teste no Supabase real** |
-| 5 | Faturas e parcelamentos | Implementado; **aguardando migration `0006` e teste no Supabase real** |
-| + | Captura automática (iPhone e Open Finance) | Implementado; **aguardando migration `0007`, publicação e credenciais** |
-| 6 | Importação OFX e CSV | Não iniciado |
+| 4 | Cartões de crédito | Implementado; migration aplicada; **aguardando teste de tela no Supabase real** |
+| 5 | Faturas e parcelamentos | Implementado; migration aplicada; **aguardando teste de tela no Supabase real** |
+| + | Financial Agent (captura, conciliação, automações, conversa) | Implementado; **aguardando migrations `0008` a `0011`, publicação e credenciais** |
+| 6 | Importação OFX e CSV | Implementado no Financial Agent; **aguardando migrations e teste com extratos reais** |
 | 7 | Relatórios e PDF | Não iniciado |
 | 8 | Dashboard financeiro | Não iniciado |
 
 ### Validar os Módulos 1 a 5 no ambiente real
 
 1. No Supabase, abra *SQL Editor → New query* e execute **um arquivo por vez, nesta ordem**,
-   conferindo o sucesso de cada um antes do próximo (até a `0005` já foi aplicada):
-   `0006_cards.sql` e `0007_capture.sql`.
+   conferindo o sucesso de cada um antes do próximo (até a `0007` já foi aplicada):
+   `0008_agent_core.sql`, `0009_agent_bills.sql`, `0010_agent_connections.sql` e
+   `0011_agent_automations.sql`. **Aplique antes de publicar o código novo.**
    Nenhuma apaga dados nem altera saldos. Se uma falhar, ela não altera nada.
 2. Rode `npm run dev` e entre.
 3. **Contas** (*Financeiro*): crie, edite o saldo inicial, arquive, reative e exclua uma conta.
@@ -36,7 +38,13 @@ Next.js (App Router) · React · TypeScript · Tailwind CSS · Supabase (Postgre
    parcelada e confira as faturas com a do seu banco. Pague uma fatura e confira que o saldo cai,
    mas as despesas do mês não aumentam.
 
-## Captura automática
+## Financial Agent
+
+Em **Financial Agent** (`/agente`): painel, revisão, conversa, atividade, conexões, importação, boletos e
+configurações. O agente só organiza registros: **nunca faz Pix, transferência, pagamento, compra ou
+investimento**. Toda ação dele fica na linha do tempo, e você pode pausá-lo a qualquer momento.
+
+### Captura
 
 O iOS isola os apps: nenhum app instalado pelo Safari consegue ler os dados dos apps de banco. Por
 isso a captura combina duas fontes, e o sistema reconhece quando as duas trazem a mesma compra.
@@ -47,9 +55,12 @@ isso a captura combina duas fontes, e o sistema reconhece quando as duas trazem 
 | **Atalhos: Apple Pay** | Estabelecimento, valor e cartão | Na hora | Só compras por aproximação com o iPhone |
 | **Atalhos: notificação do banco** (iOS 27) | Depende do texto do aviso | Na hora | Experimental, não confirmado em aparelho real |
 
-O que o sistema não consegue decidir fica em *Configurações → Captura automática → Para revisar* e
+| **Extrato OFX ou CSV** | O que o banco exportar | Quando você enviar | Até 4 MB; o arquivo não é guardado |
+
+O que o sistema não consegue decidir fica em *Financial Agent → Revisão* e
 só entra nos saldos depois da sua escolha, como pagamentos de fatura e possíveis transferências
-entre suas contas. A categoria é repetida a partir da última vez em que a mesma descrição apareceu.
+entre suas contas. Boletos pendentes não vêm do Open Finance: cadastre em *Financial Agent → Boletos*, e o
+boleto só aparece como pago quando uma transação confirma o pagamento.
 
 ### Publicar (necessário para o iPhone e para a sincronização diária)
 
@@ -61,15 +72,16 @@ O iPhone não alcança o seu computador. Publique na Vercel seguindo a seção [
    no próprio banco: sua senha não passa pelo WALLET OS.
 2. Em [dashboard.pluggy.ai](https://dashboard.pluggy.ai), crie uma aplicação, ative o conector
    **MeuPluggy**, vincule cada banco e copie o **Client ID** e o **Client Secret**.
-3. Copie o **ID de cada conexão** no Meu Pluggy.
-4. Preencha, no `.env.local` e nas variáveis da Vercel: `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET` e
-   `PLUGGY_ITEM_IDS` (IDs separados por vírgula).
-5. Em *Configurações → Captura automática*, clique em **Ver contas do banco** e ligue cada uma à
+3. Preencha, no `.env.local` e nas variáveis da Vercel: `PLUGGY_CLIENT_ID` e `PLUGGY_CLIENT_SECRET`.
+4. Copie o **ID de cada conexão** no Meu Pluggy e adicione em *Financial Agent → Conexões*.
+5. Na mesma tela, clique em **Ver contas do banco** e ligue cada uma à
    conta ou ao cartão correspondente. Só entra o que acontecer depois de ligar: o histórico anterior
    já está no saldo inicial que você informou.
 6. Para a sincronização diária, crie um token na mesma tela e cadastre na Vercel `WALLET_SYNC_TOKEN`
    (o token) e `CRON_SECRET` (um texto aleatório longo). O agendamento está em `vercel.json`, uma vez
    por dia. Sem isso, use o botão **Sincronizar agora**.
+7. Opcional: para sincronizar quando a Pluggy avisar, cadastre um webhook para `/api/webhooks/pluggy` com o
+   cabeçalho `x-wallet-webhook-secret` e configure `PLUGGY_WEBHOOK_SECRET` com o mesmo valor.
 
 No plano gratuito, a Pluggy não fornece o nome do estabelecimento nem categorias enriquecidas, que
 exigem o plano Pro: a descrição é a que o banco envia. Compras parceladas chegam como uma linha por
@@ -78,9 +90,15 @@ perto do fechamento.
 
 ### Configurar o iPhone (Atalhos)
 
-Os passos estão em *Configurações → Captura automática*, com o endereço pronto para copiar. As
+Os passos estão em *Financial Agent → Conexões*, com o endereço pronto para copiar. As
 automações são criadas à mão, uma vez, porque o iOS não permite instalá-las por um link. Para abrir o
 WALLET OS como um app, sem App Store: Safari → Compartilhar → **Adicionar à Tela de Início**.
+
+### Perguntas livres na conversa (opcional)
+
+Sem configurar nada, a conversa responde às perguntas conhecidas sem enviar dados para fora. Para as demais,
+cadastre `ANTHROPIC_API_KEY`. Essas perguntas e os resultados das consultas passam a ir para a Claude API, com
+custo por uso.
 
 ### Decisões dos Módulos 2 a 5
 
@@ -152,9 +170,11 @@ src/
       financeiro/         contas bancárias (lista e detalhe) e categorias
       transacoes/         receitas, despesas e transferências
       cartoes/            cartões, faturas, compras e parcelas
-      configuracoes/      conta, integrações e captura automática
+      agente/             Financial Agent: painel, revisão, conversa, conexões, importação, boletos
+      configuracoes/      conta e integrações
     api/capture/          recebe os eventos dos Atalhos (autenticação por token)
-    api/cron/pluggy/      sincronização diária com o Open Finance
+    api/cron/agent/       rotina diária: sincroniza e roda as automações
+    api/webhooks/pluggy/  aviso opcional da Pluggy
       [section]/          demais módulos (placeholders com a fase planejada)
     manifest.ts, icon.svg PWA (completa na Fase 5)
   components/             nav, gráfico SVG e ui/ (botão, campos, modal, toast, skeleton...)
@@ -162,7 +182,7 @@ src/
   lib/                    env, supabase, auth, money, dates, audit, overview, demo-data
   middleware.ts           renovação de sessão e proteção de rotas
 supabase/migrations/      SQL versionado com RLS
-tests/                    unit/ (regras) e db/ (migrations, saldo e RLS em Postgres real)
+tests/                    unit/ (regras), db/ (migrations, saldo e RLS em Postgres real) e e2e/ (Next e Chrome reais)
 ```
 
 ## Testes
@@ -188,9 +208,9 @@ saldo, ajuste o saldo inicial da conta ou lance uma movimentação.
 
 - Sessão validada no servidor a cada requisição (`auth.getUser()`), cookies gerenciados por `@supabase/ssr`.
 - RLS em todas as tabelas: `user_id = auth.uid()`.
-- FKs compostas com `user_id` em contas, categorias, cartões e faturas: uma transação não pode apontar para dados de outro usuário, o que o RLS sozinho não impede. Lotes de importação recebem a mesma proteção no módulo correspondente.
+- FKs compostas com `user_id` em contas, categorias, cartões e faturas: uma transação não pode apontar para dados de outro usuário, o que o RLS sozinho não impede. Lotes de importação recebem a mesma proteção.
 - Faturas e parcelas só mudam por funções do banco, que conferem o dono; o cliente não escreve nessas tabelas.
-- Captura: cada iPhone usa um token revogável, guardado só como hash. O endpoint não usa a service role, aceita no máximo 8 KB e não devolve dados. O texto bruto das mensagens não é guardado, e mensagens com código ou senha são descartadas.
+- Captura: cada iPhone usa um token revogável, guardado só como hash. O endpoint não usa a service role, aceita no máximo 8 KB, limita a 60 requisições por minuto e não devolve dados. O texto bruto das mensagens não é guardado, e mensagens com código ou senha são descartadas.
 - Credenciais da Pluggy só no servidor. Nenhuma senha de banco passa pelo sistema. Nunca coloque valores reais no `.env.example`: este repositório é público.
 - `audit_logs` é append-only para o cliente; login e logout são registrados.
 - Tokens OAuth ficam em colunas criptografadas e **não são legíveis pelo cliente** (GRANT por coluna).
@@ -229,5 +249,5 @@ saldo, ajuste o saldo inicial da conta ou lance uma movimentação.
 
 Esta decisão mudou durante a Fase 2: a integração bancária agora existe, pelo Meu Pluggy, e é opcional.
 Contas e cartões continuam sendo cadastrados no WALLET OS, e as transações podem entrar por lançamento
-manual, captura automática ou, no próximo módulo, importação de extrato (OFX/CSV). A tabela
-`import_batches` registrará cada importação; `transactions.dedupe_hash` impede duplicidade.
+manual, captura automática ou importação de extrato (OFX/CSV). A tabela `import_batches` registra cada
+importação; `capture_events.external_ref` e `transactions.dedupe_hash` impedem duplicidade.

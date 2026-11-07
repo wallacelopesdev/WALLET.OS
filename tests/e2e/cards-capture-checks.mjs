@@ -18,6 +18,7 @@ function startFakePluggy(state) {
       return send(200, { apiKey: "chave-api" });
     }
     if (req.headers["x-api-key"] !== "chave-api") return send(403, {});
+    if (/^\/items\//.test(url.pathname)) return send(200, { status: "UPDATED", connector: { name: "Itaú" }, consentExpiresAt: "2027-11-01T00:00:00.000Z" });
     if (url.pathname === "/accounts") return send(200, { page: 1, total: 2, totalPages: 1, results: state.accounts });
     if (url.pathname === "/v2/transactions") {
       state.calls.push(url.search);
@@ -272,9 +273,9 @@ export async function runA(h) {
     });
 
   await check("[Captura] token criado pela tela aparece uma vez e só o hash fica no banco", async () => {
-    await goto("/configuracoes");
-    await evalJs(`document.querySelector('a[href="/configuracoes/captura"]').click()`);
-    await waitFor(`location.pathname==='/configuracoes/captura'`, "rota");
+    await goto("/agente");
+    await evalJs(`document.querySelector('a[href="/agente/conexoes"]').click()`);
+    await waitFor(`location.pathname==='/agente/conexoes'`, "rota");
     await see("Configurar no iPhone");
     await click("Criar token");
     await see("não será mostrado de novo");
@@ -283,7 +284,7 @@ export async function runA(h) {
     await shot("34-captura-desktop");
     const stored = await count("select count(*) from public.capture_tokens where token_hash=$1", [token]);
     if (stored !== 0) throw new Error("token em texto puro");
-    await goto("/configuracoes/captura");
+    await goto("/agente/conexoes");
     if (await evalJs(hasText("wos_"))) throw new Error("token reaparece");
     await see("ainda sem uso");
   });
@@ -344,7 +345,7 @@ export async function runA(h) {
     if ((await balance("Principal")) !== before) throw new Error("entrou no saldo");
     await goto("/transacoes");
     await see("lançamentos capturados aguardam revisão");
-    await goto("/configuracoes/captura");
+    await goto("/agente/revisao");
     await see("Loja Misteriosa");
     await see("Não identifiquei a conta ou o cartão");
     const principal = (await db.query("select id from public.bank_accounts where name='Principal'")).rows[0].id;
@@ -387,7 +388,10 @@ export async function runA(h) {
 
   try {
     await check("[Pluggy] tela lista as contas e liga cada uma ao destino", async () => {
-      await goto("/configuracoes/captura");
+      await goto("/agente/conexoes");
+      await setVal("input[name=itemId]", "item-1-do-banco");
+      await click("Adicionar conexão");
+      await see("Conexão adicionada.");
       await click("Ver contas do banco");
       await see("Nubank Roxo");
       await see("Conta Itaú");
@@ -407,7 +411,7 @@ export async function runA(h) {
 
     await check("[Pluggy] sincronizar: cria, reconhece o que veio do Apple Pay e separa fatura", async () => {
       const before = await balance("Principal");
-      await goto("/configuracoes/captura");
+      await goto("/agente/conexoes");
       await click("Sincronizar agora");
       await see("Sincronizado:");
       afterSync = await balance("Principal");
@@ -433,13 +437,13 @@ export async function runA(h) {
     });
 
     await check("[Pluggy] agendador: exige segredo e sincroniza com o token", async () => {
-      const denied = await fetch(`${BASE}/api/cron/pluggy`);
-      const wrong = await fetch(`${BASE}/api/cron/pluggy`, { headers: { authorization: "Bearer errado" } });
+      const denied = await fetch(`${BASE}/api/cron/agent`);
+      const wrong = await fetch(`${BASE}/api/cron/agent`, { headers: { authorization: "Bearer errado" } });
       if (denied.status !== 401 || wrong.status !== 401) throw new Error(`${denied.status}/${wrong.status}`);
       state.transactions["pl-bank"].push({ id: "b5", description: "PIX DO AGENDADOR", amount: 12, type: "CREDIT", status: "POSTED", date: `${today}T00:00:00.000Z` });
-      const ok = await fetch(`${BASE}/api/cron/pluggy`, { headers: { authorization: "Bearer cron-secreto" } });
+      const ok = await fetch(`${BASE}/api/cron/agent`, { headers: { authorization: "Bearer cron-secreto" } });
       const body = await ok.json();
-      if (ok.status !== 200 || body.created !== 1) throw new Error(JSON.stringify(body));
+      if (ok.status !== 200 || body.sync.created !== 1) throw new Error(JSON.stringify(body));
       if ((await balance("Principal")) !== afterSync + 1200) throw new Error("saldo");
     });
 
@@ -481,9 +485,9 @@ export async function runA(h) {
     await see("Compras");
     await shot("40-fatura-mobile");
     await noOverflow("fatura");
-    await goto("/configuracoes/captura");
+    await goto("/agente/conexoes");
     await see("Configurar no iPhone");
-    await shot("41-captura-mobile");
+    await shot("41-conexoes-mobile");
     await noOverflow("captura");
   });
   await viewport(1280, 860, false);
@@ -506,7 +510,7 @@ export async function runB(h) {
   });
 
   await check("[isolamento] B não vê tokens, vínculos nem pendências de A", async () => {
-    await goto("/configuracoes/captura");
+    await goto("/agente/revisao");
     await see("Nada para revisar");
     if (!(await notSee("PAG FATURA"))) throw new Error("pendência de A");
     if (await evalJs(hasText("Agendador"))) throw new Error("token de A");

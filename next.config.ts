@@ -15,8 +15,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // O teste de ponta a ponta usa uma pasta própria, para não colidir com um `npm run dev` aberto.
+  distDir: process.env.E2E_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // Extratos importados. A Vercel recusa corpos acima de 4,5 MB, por isso o limite é 4 MB no código.
+    serverActions: { bodySizeLimit: "4.5mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
