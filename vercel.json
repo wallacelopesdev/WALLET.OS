@@ -1,3 +1,1 @@
-{
-  "crons": [{ "path": "/api/cron/pluggy", "schedule": "0 9 * * *" }]
-}
+{ "crons": [{ "path": "/api/cron/agent", "schedule": "0 9 * * *" }] }
