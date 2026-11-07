@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // api/capture e api/cron têm autenticação própria por token: não usam sessão.
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|api/capture|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // api/capture, api/cron e api/webhooks têm autenticação própria por token: não usam sessão.
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|api/capture|api/cron|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
